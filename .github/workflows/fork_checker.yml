@@ -14,7 +14,7 @@ jobs:
         strategy:
           fail-fast: false
           matrix:
-            branches: [humble, iron, rolling]
+            branches: [iron]
         steps:
           - name: Check
             id: check
@@ -22,14 +22,17 @@ jobs:
             run: |
               apt update; apt install -y git
               REPO=$(echo ${{ github.repository }} | awk '{split($0,a,"/"); print a[2]}')
-              git clone -b ${{ matrix.branches }} https://github.com/micro-ros/$REPO
+              git clone -b ${{ matrix.branches }} https://github.com/gardinltd/$REPO
               cd $REPO
-              git remote add ros2 https://github.com/ros2/$REPO
-              git fetch ros2
+              git remote add upstream https://github.com/micro-ros/$REPO
+              git fetch upstream
               git fetch origin
-              echo "::set-output name=merge_required::true"
-              CMP=$(git rev-list --left-right --count ros2/${{ matrix.branches }}...origin/${{ matrix.branches }} | awk '{print $1}')
-              if [ $CMP = "0" ]; then echo "::set-output name=merge_required::false"; fi
+              CMP=$(git rev-list --left-right --count upstream/${{ matrix.branches }}...origin/${{ matrix.branches }} | awk '{print $1}')
+              if [ $CMP = "0" ]; then
+                echo "merge_required=false" >> $GITHUB_OUTPUT
+              else
+                echo "merge_required=true" >> $GITHUB_OUTPUT
+              fi
 
           - name: Alert
             if: ${{ steps.check.outputs.merge_required  == 'true' }}
